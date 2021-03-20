@@ -207,6 +207,8 @@ public class CircularBufferProcessorTestCase {
     @Test
     public void testACircularBufferProcessorShouldProcessDownstreamMessagesBeyondTheBufferSizeOnlyIfAcknowledgementsAreDisabled() throws InterruptedException, TimeoutException, ExecutionException {
 
+        int n = capacity * 6;
+
         CircularBuffer<String> buffer = new CircularBuffer<String>(capacity, false);
 
         CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
@@ -218,7 +220,7 @@ public class CircularBufferProcessorTestCase {
 
         DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
 
-        List<Integer> msgs = TestUtils.generateListOfInt(0,capacity*6);
+        List<Integer> msgs = TestUtils.generateListOfInt(0,n);
 
         List<Integer> elements = new ArrayList<>();
         CollectingSubscriber<Integer> collector = new CollectingSubscriber<>(elements);
@@ -228,15 +230,28 @@ public class CircularBufferProcessorTestCase {
             }
         });
 
-        Flux.fromIterable(msgs)
+        BlockingQueue<Integer> q = new ArrayBlockingQueue<>(n*2);
+        Flux.from(new QueuePublisher<>(q))
                 .subscribe(downstream);
+        msgs.stream().forEach(i -> q.offer(i));
 
-        Flux.from(downstream)
-                .subscribeWith(collector); //.get().get(5, TimeUnit.SECONDS);
-        Thread.sleep(5000);
+        try {
+            Flux.from(downstream)
+                    .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
-        logger.info("expected: {} received: {}",msgs,elements);
-        assertEquals(msgs, elements);
+            logger.info("expected: {} received: {}",msgs,elements);
+            assertEquals(msgs, elements);
+        } catch (InterruptedException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            logger.error(e.getMessage(), e);
+            throw new RuntimeException(e);
+        } catch (TimeoutException e) {
+            logger.info("expected: {} received: {}",msgs,elements);
+            assertEquals(msgs, elements);
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
