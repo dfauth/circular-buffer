@@ -1,6 +1,5 @@
 package com.github.dfauth.circular;
 
-import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
@@ -8,61 +7,44 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicLong;
 
-public abstract class CircularBufferProcessor<T,U,V> implements Processor<T, U> {
+public abstract class CircularBufferSubscriber<T,V> implements Subscriber<T>, Directional {
 
-    private static final Logger logger = LoggerFactory.getLogger(CircularBufferProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(CircularBufferSubscriber.class);
 
     protected final Coordinator coordinator;
     protected final ForkJoinPool pool;
-    protected volatile Optional<Subscriber<? super U>> optSubscriber = Optional.empty();
     protected volatile Optional<Subscription> optSubscription = Optional.empty();
     protected final CircularBuffer<SubscriberCommand<V>> circularBuffer;
-    private final RecursiveActionSubscription s;
     private final AtomicLong countdown = new AtomicLong(0);
 
-    public CircularBufferProcessor(CircularBuffer<SubscriberCommand<V>> circularBuffer, Coordinator coordinator, ForkJoinPool pool, Direction direction) {
+    public CircularBufferSubscriber(CircularBuffer<SubscriberCommand<V>> circularBuffer, Coordinator coordinator, ForkJoinPool pool) {
         this.circularBuffer = circularBuffer;
         this.coordinator = coordinator;
         this.pool = pool;
-        this.s = new RecursiveActionSubscription(pool, callableAction(), this);
-    }
-
-    @Override
-    public void subscribe(Subscriber<? super U> subscriber) {
-        Optional<Subscription> tmp;
-        synchronized (this) {
-            optSubscriber = Optional.of(subscriber);
-            tmp = optSubscription;
-        }
-        tmp.ifPresent(s -> coordinator.init(this));
     }
 
     @Override
     public void onSubscribe(Subscription subscription) {
-        Optional<Subscriber<? super U>> tmp;
-        synchronized (this) {
-            optSubscription = Optional.of(subscription);
-            tmp = optSubscriber;
-        }
-        tmp.ifPresent(s -> coordinator.init(this));
+        optSubscription = Optional.of(subscription);
     }
 
     public final void init() {
         optSubscription.ifPresent(subscription -> {
-            optSubscriber.ifPresent(subscriber -> {
-                subscriber.onSubscribe(s);
-                Optional.of(capacity())
-                        .filter(c -> c > 0)
-                        .stream()
-                        .peek(c -> countdown.set(c))
-                        .peek(c -> subscription.request(c))
-                        .forEach(c -> logger.debug("requested {} items direction {}",c,direction()));
-            });
+            Optional.of(capacity())
+                    .filter(c -> c > 0)
+                    .stream()
+                    .peek(c -> countdown.set(c))
+                    .peek(c -> subscription.request(c))
+                    .forEach(c -> logger.debug("requested {} items direction {}",c,direction()));
         });
+        _init();
     }
+
+    protected abstract void _init();
 
     protected abstract long capacity();
 
@@ -74,7 +56,7 @@ public abstract class CircularBufferProcessor<T,U,V> implements Processor<T, U> 
             _onNext(t);
         } finally {
             countdown.decrementAndGet();
-            s.runIfIdle();
+            coordinator.maybeRun(direction());
         }
     }
 
@@ -93,8 +75,6 @@ public abstract class CircularBufferProcessor<T,U,V> implements Processor<T, U> 
         circularBuffer.write(SubscriberCommand.onComplete);
         countdown.decrementAndGet();
     }
-
-    public abstract Direction direction();
 
     public final void readOne() {
         long c = capacity();

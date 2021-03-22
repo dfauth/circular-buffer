@@ -26,9 +26,9 @@ public class CircularBufferProcessorReconnectCase {
 
         CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-        UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+        UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
-        DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+        DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
         BlockingQueue<Integer> queue = new ArrayBlockingQueue<>(100);
         Flux.from(new QueuePublisher<>(queue)).subscribe(downstream);
@@ -38,11 +38,11 @@ public class CircularBufferProcessorReconnectCase {
 
         KillSwitch<Integer> killSwitch = new KillSwitch<>();
 
-        Flux.from(downstream).subscribe(killSwitch);
+        Flux.from(coordinator.getDownstreamPublisher()).subscribe(killSwitch);
         Flux.from(killSwitch).subscribe(collector);
 
         Flux.<Integer>empty().subscribe(upstream);
-        Flux.from(upstream).subscribe(e -> {});
+        Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
         List<Integer> ints = generateListOfInt(0, 7);
 
@@ -60,7 +60,7 @@ public class CircularBufferProcessorReconnectCase {
         List<Integer> elements2 = new ArrayList<>();
         CollectingSubscriber<Integer> collector2 = new CollectingSubscriber<>(elements2);
 
-        Flux.from(downstream)
+        Flux.from(coordinator.getDownstreamPublisher())
                 .subscribe(killSwitch2);
         Flux.from(killSwitch2).subscribe(collector2);
 

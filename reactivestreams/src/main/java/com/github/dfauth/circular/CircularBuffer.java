@@ -162,6 +162,14 @@ public class CircularBuffer<T> {
         }
     }
 
+    public void close(Throwable ex) {
+        // TODO
+    }
+
+    public void close() {
+        // TODO
+    }
+
     private class PassThroughTemplate implements TransactionTemplate<T, Boolean> {
 
         private final Consumer<T> consumer;

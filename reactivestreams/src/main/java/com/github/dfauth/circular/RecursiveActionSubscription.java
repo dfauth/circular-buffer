@@ -19,15 +19,15 @@ public class RecursiveActionSubscription implements Subscription {
 
     private final ForkJoinPool pool;
     private final Callable<Boolean> callable;
-    private final CircularBufferProcessor parent;
+    private final CircularBufferPublisher publisher;
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
     private final AtomicBoolean idle = new AtomicBoolean(true);
     private final AtomicLong countdown = new AtomicLong(0L);
 
-    public RecursiveActionSubscription(ForkJoinPool pool, Callable<Boolean> callable, CircularBufferProcessor parent) {
+    public RecursiveActionSubscription(ForkJoinPool pool, Callable<Boolean> callable, CircularBufferPublisher publisher) {
         this.pool = pool;
         this.callable = callable;
-        this.parent = parent;
+        this.publisher = publisher;
     }
 
     @Override
@@ -35,7 +35,7 @@ public class RecursiveActionSubscription implements Subscription {
         cancelled.set(false);
         countdown.set(l);
         pool.execute(createAction());
-        debug(() -> "request "+l+" "+parent.direction().name());
+        debug(() -> "request "+l+" "+ publisher.direction().name());
     }
 
     private RecursiveAction createAction() {
@@ -58,7 +58,7 @@ public class RecursiveActionSubscription implements Subscription {
                         // success; reduce by one
                         countdown.decrementAndGet();
                         debug(() -> "compute complete "+RecursiveActionSubscription.this);
-                        parent.readOne();
+                        publisher.getCoordinator().getSubscriberFor(publisher.direction()).readOne();
                         pool.execute(createAction());
                     } else {
                         idle.set(true);
@@ -92,7 +92,7 @@ public class RecursiveActionSubscription implements Subscription {
                 +" cancelled: "+cancelled.get()
                 +" idle: "+idle.get()
                 +" countdown: "+countdown.get()
-                +" direction: "+parent.direction().name()
+                +" direction: "+ publisher.direction().name()
                 +"]";
     }
 

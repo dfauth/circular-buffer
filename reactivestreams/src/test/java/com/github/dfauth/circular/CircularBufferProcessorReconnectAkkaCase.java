@@ -32,9 +32,9 @@ public class CircularBufferProcessorReconnectAkkaCase {
 
         CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-        UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+        UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
-        DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+        DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
         List<Integer> elements = new ArrayList<>();
 //        CollectingSubscriber<Integer> collector = new CollectingSubscriber<>(elements);
@@ -51,14 +51,14 @@ public class CircularBufferProcessorReconnectAkkaCase {
             return l;
         };
         Pair<SourceQueueWithComplete<Integer>, CompletionStage<List<Integer>>> pair = Source.<Integer>queue(100, OverflowStrategy.fail())
-                .via(Flow.fromProcessor(() -> downstream))
+                .via(Flow.fromSinkAndSource(Sink.fromSubscriber(downstream), Source.fromPublisher(coordinator.getDownstreamPublisher())))
                 .via(killSwitch.flow())
                 .toMat(Sink.fold(elements, f), Keep.both()).run(materializer);
 
         SourceQueueWithComplete<Integer> queue = pair.first();
         CompletionStage<List<Integer>> f1 = pair.second();
 
-        Source.<Integer>empty().via(Flow.fromProcessor(() -> upstream)).to(Sink.ignore()).run(materializer);
+        Source.<Integer>empty().via(Flow.fromSinkAndSource(Sink.fromSubscriber(downstream), Source.fromPublisher(coordinator.getDownstreamPublisher()))).to(Sink.ignore()).run(materializer);
 
         List<Integer> ints = generateListOfInt(0, 7);
 
@@ -80,7 +80,7 @@ public class CircularBufferProcessorReconnectAkkaCase {
         List<Integer> elements2 = new ArrayList<>();
 //        CollectingSubscriber<Integer> collector2 = new CollectingSubscriber<>(elements2);
 
-        CompletionStage<List<Integer>> f2 = Source.fromPublisher(downstream)
+        CompletionStage<List<Integer>> f2 = Source.fromPublisher(coordinator.getDownstreamPublisher())
                 .via(killSwitch2.flow())
                 .toMat(Sink.fold(elements2, f), Keep.right())
                 .run(materializer);

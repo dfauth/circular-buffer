@@ -34,12 +34,12 @@ public class CircularBufferProcessorTestCase {
 
             CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-            UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+            UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
             Flux.<Integer>empty().subscribe(upstream);
-            Flux.from(upstream).subscribe(e -> {});
+            Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-            DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+            DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
             int msg = 0;
             BlockingQueue<Integer> q = new ArrayBlockingQueue<>(10);
@@ -52,7 +52,7 @@ public class CircularBufferProcessorTestCase {
             collector.addConsumer(i ->
                     collector.close()
             );
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msg,elements);
@@ -68,12 +68,12 @@ public class CircularBufferProcessorTestCase {
 
             CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-            UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+            UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
             Flux.<Integer>empty().subscribe(upstream);
-            Flux.from(upstream).subscribe(e -> {});
+            Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-            DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+            DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
             List<Integer> msgs = List.of(0, 1);
             BlockingQueue<Integer> q = new ArrayBlockingQueue<>(10);
@@ -89,7 +89,7 @@ public class CircularBufferProcessorTestCase {
                 }
                     }
             );
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msgs,elements);
@@ -105,12 +105,12 @@ public class CircularBufferProcessorTestCase {
 
             CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-            UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+            UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
             Flux.<Integer>empty().subscribe(upstream);
-            Flux.from(upstream).subscribe(e -> {});
+            Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-            DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+            DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
             List<Integer> msgs = IntStream.range(0, capacity).mapToObj(i -> i).collect(Collectors.toList());
             BlockingQueue<Integer> q = new ArrayBlockingQueue<>(100);
@@ -126,7 +126,7 @@ public class CircularBufferProcessorTestCase {
                 }
                     }
             );
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msgs,elements);
@@ -144,12 +144,12 @@ public class CircularBufferProcessorTestCase {
 
             CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-            UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+            UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
             Flux.<Integer>empty().subscribe(upstream);
-            Flux.from(upstream).subscribe(e -> {});
+            Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-            DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+            DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
             List<Integer> msgs = IntStream.range(0, n).mapToObj(i -> i).collect(Collectors.toList());
             BlockingQueue<Integer> q = new ArrayBlockingQueue<>(n*2);
@@ -166,8 +166,8 @@ public class CircularBufferProcessorTestCase {
                 }
                     }
             );
-            Flux.from(downstream)
-                    .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
+            Flux.from(coordinator.getDownstreamPublisher())
+                    .subscribeWith(collector).get().get(50, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msgs,elements);
             assertEquals(msgs.size(), elements.size());
@@ -182,12 +182,12 @@ public class CircularBufferProcessorTestCase {
 
         CircularBufferCoordinator<String, String> coordinator = new CircularBufferCoordinator(buffer);
 
-        UpstreamCircularBufferProcessor<String, String> upstream = coordinator.upstreamProcessor();
+        UpstreamCircularBufferSubscriber<String,String> upstream = coordinator.getUpstreamSubscriber();
 
         Flux.<String>empty().subscribe(upstream);
-        Flux.from(upstream).subscribe(e -> {});
+        Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-        DownstreamCircularBufferProcessor<String> downstream = coordinator.downstreamProcessor();
+        DownstreamCircularBufferSubscriber<String> downstream = coordinator.getDownstreamSubscriber();
 
         List<String> msgs = TestUtils.generateListOfUUID(capacity / 2);
 
@@ -196,7 +196,7 @@ public class CircularBufferProcessorTestCase {
         Flux.fromIterable(msgs)
                 .subscribe(downstream);
 
-        Flux.from(downstream)
+        Flux.from(coordinator.getDownstreamPublisher())
                 .subscribe(elements::add);
 
         Thread.sleep(1000);
@@ -213,12 +213,12 @@ public class CircularBufferProcessorTestCase {
 
         CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-        UpstreamCircularBufferProcessor<Integer, Integer> upstream = coordinator.upstreamProcessor();
+        UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
         Flux.<Integer>empty().subscribe(upstream);
-        Flux.from(upstream).subscribe(e -> {});
+        Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-        DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+        DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
         List<Integer> msgs = TestUtils.generateListOfInt(0,n);
 
@@ -236,7 +236,7 @@ public class CircularBufferProcessorTestCase {
         msgs.stream().forEach(i -> q.offer(i));
 
         try {
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msgs,elements);
@@ -263,14 +263,14 @@ public class CircularBufferProcessorTestCase {
 
         CircularBufferCoordinator<Integer, Integer> coordinator = new CircularBufferCoordinator(buffer);
 
-        UpstreamCircularBufferProcessor<Integer,Integer> upstream = coordinator.upstreamProcessor();
+        UpstreamCircularBufferSubscriber<Integer, Integer> upstream = coordinator.getUpstreamSubscriber();
 
         BlockingQueue<Integer> queue = new ArrayBlockingQueue<>(400);
         QueuePublisher<Integer> qp = new QueuePublisher<>(queue);
         Flux.from(qp).subscribe(upstream);
-        Flux.from(upstream).subscribe(e -> {});
+        Flux.from(coordinator.getUpstreamPublisher()).subscribe(e -> {});
 
-        DownstreamCircularBufferProcessor<Integer> downstream = coordinator.downstreamProcessor();
+        DownstreamCircularBufferSubscriber<Integer> downstream = coordinator.getDownstreamSubscriber();
 
         List<Integer> msgs = generateListOfInt(0, n);
 
@@ -291,7 +291,7 @@ public class CircularBufferProcessorTestCase {
         });
 
         try {
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
 //            logger.info("expected: {} received: {}",msgs,elements);
@@ -313,7 +313,7 @@ public class CircularBufferProcessorTestCase {
         tmp.stream().forEach(i -> queue.offer(i));
 
         try {
-            Flux.from(downstream)
+            Flux.from(coordinator.getDownstreamPublisher())
                     .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             fail("expecting timeoutException");

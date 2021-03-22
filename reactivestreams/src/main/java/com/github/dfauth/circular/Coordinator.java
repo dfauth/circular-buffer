@@ -1,9 +1,26 @@
 package com.github.dfauth.circular;
 
 public interface Coordinator<T,U> {
-    void init(CircularBufferProcessor<T,?,?> processor);
 
-    DownstreamCircularBufferProcessor<T> downstreamProcessor();
+    void onSubscribe(DownstreamCircularBufferSubscriber<T> subscriber);
 
-    UpstreamCircularBufferProcessor<U,T> upstreamProcessor();
+    void onSubscribe(UpstreamCircularBufferSubscriber<T,U> subscriber);
+
+    void onSubscription(DownstreamCircularBufferPublisher<U> subscriber);
+
+    void onSubscription(UpstreamCircularBufferPublisher<U,?,?> subscriber);
+
+    DownstreamCircularBufferPublisher<T> getDownstreamPublisher();
+
+    DownstreamCircularBufferSubscriber<T> getDownstreamSubscriber();
+
+    UpstreamCircularBufferPublisher<U,T,?> getUpstreamPublisher();
+
+    UpstreamCircularBufferSubscriber<U,T> getUpstreamSubscriber();
+
+    void maybeRun(Direction direction);
+
+    void close();
+
+    CircularBufferSubscriber getSubscriberFor(Direction direction);
 }
