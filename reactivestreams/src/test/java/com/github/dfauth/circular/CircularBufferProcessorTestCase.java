@@ -167,7 +167,7 @@ public class CircularBufferProcessorTestCase {
                     }
             );
             Flux.from(coordinator.getDownstreamPublisher())
-                    .subscribeWith(collector).get().get(50, TimeUnit.SECONDS);
+                    .subscribeWith(collector).get().get(5, TimeUnit.SECONDS);
 
             logger.info("expected: {} received: {}",msgs,elements);
             assertEquals(msgs.size(), elements.size());
