@@ -54,10 +54,12 @@ public abstract class CircularBufferProcessor<T,U,V> implements Processor<T, U> 
         optSubscription.ifPresent(subscription -> {
             optSubscriber.ifPresent(subscriber -> {
                 subscriber.onSubscribe(s);
-                long c = capacity();
-                countdown.set(c);
-                subscription.request(c);
-                logger.debug("requested {} items direction {}",c,direction());
+                Optional.of(capacity())
+                        .filter(c -> c > 0)
+                        .stream()
+                        .peek(c -> countdown.set(c))
+                        .peek(c -> subscription.request(c))
+                        .forEach(c -> logger.debug("requested {} items direction {}",c,direction()));
             });
         });
     }
